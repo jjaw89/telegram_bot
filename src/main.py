@@ -32,7 +32,7 @@ async def help_command(update, context):
 
 
 def main():
-    token = config.victoriapups_testing_bot
+    token = config.token
     app = Application.builder().token(token).build()
 
     app.add_handler(CommandHandler("start", start_command))

@@ -6,33 +6,60 @@ from utils.data import roles
 async def admins_command(update: Update, context: CallbackContext):
     """
     Handle the /admins command.
-    Shows a summary of admin roles with numbered buttons to learn more details.
+    If a number is provided (e.g., /admins 2), show that specific admin role directly.
+    If no argument is provided, show the summary of admin roles with numbered buttons.
     """
-    # Build the main message with all admin roles summaries
-    message_text = "*__Admin Roles__*\n\n"
-    # Enumerate roles (1-based)
+    args = context.args  # arguments passed with /admins
     role_keys = list(roles.keys())
-    for i, (role, info) in enumerate(roles.items(), start=1):
-        # For each role, display something like:
-        # 1) K9 Unit: Helps with important decisions...
-        message_text += f"{i}\\) *{role}*: _{info['summary']}_\n"
 
-    message_text += "\nSelect a role to learn more\\."
+    if args:  # If there are arguments, try to parse as a role number
+        try:
+            role_number = int(args[0])
+            if 1 <= role_number <= len(role_keys):
+                # Fetch the specific role
+                current_role = role_keys[role_number - 1]
+                current_info = roles[current_role]
 
-    # Create buttons for each role number
-    buttons = [
-        InlineKeyboardButton(str(i + 1), callback_data=f"admins:role:{i}")
-        for i in range(len(role_keys))
-    ]
-    keyboard = [buttons]
-    reply_markup = InlineKeyboardMarkup(keyboard)
+                # Format the full role message
+                message_text = f"*{current_role}*\n_{current_info['description']}_\n\n"
+                if 'admins' in current_info:
+                    message_text += "*Admins:*\n"
+                    for admin in current_info['admins']:
+                        # Already have escaping in the roles data. Just ensure no markdown conflicts
+                        message_text += f"• {admin['name']} \\(@{admin['username']}\\)\n"
 
-    # Send the summary message
-    await update.message.reply_text(
-        message_text,
-        parse_mode=ParseMode.MARKDOWN_V2,
-        reply_markup=reply_markup
-    )
+                await update.message.reply_text(
+                    message_text,
+                    parse_mode=ParseMode.MARKDOWN_V2
+                )
+            else:
+                # Out of range role number
+                await update.message.reply_text(
+                    f"Invalid role number! Please use a number between 1 and {len(role_keys)}."
+                )
+        except ValueError:
+            # Not a valid integer
+            await update.message.reply_text("Please provide a valid role number (e.g., /admins 1).")
+    else:
+        # No arguments, show the summary with buttons
+        message_text = "*__Admin Roles__*\n\n"
+        for i, (role, info) in enumerate(roles.items(), start=1):
+            message_text += f"{i}\\) *{role}*: _{info['summary']}_\n"
+
+        message_text += "\nSelect a role to learn more\\."
+
+        buttons = [
+            InlineKeyboardButton(str(i + 1), callback_data=f"admins:role:{i}")
+            for i in range(len(role_keys))
+        ]
+        keyboard = [buttons]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        await update.message.reply_text(
+            message_text,
+            parse_mode=ParseMode.MARKDOWN_V2,
+            reply_markup=reply_markup
+        )
 
 async def admins_callback(update: Update, context: CallbackContext):
     """
@@ -77,15 +104,11 @@ async def admins_callback(update: Update, context: CallbackContext):
 
         # Format the full role message
         message_text = f"*{current_role}*\n_{current_info['description']}_\n\n"
-        # Optionally, also list the admins for this role
-        # For example, add a section listing the admins with their usernames:
         if 'admins' in current_info:
             message_text += "*Admins:*\n"
             for admin in current_info['admins']:
-                # Example: Kelgar (@Kelgarthecat)
                 message_text += f"• {admin['name']} \\(@{admin['username']}\\)\n"
 
-        # Navigation buttons: Previous, Summary, Next
         prev_index = (current_index - 1) % total_roles
         next_index = (current_index + 1) % total_roles
 
