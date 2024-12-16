@@ -118,7 +118,7 @@ async def rules_callback(update: Update, context: CallbackContext):
         keyboard = [
             [
                 InlineKeyboardButton("← Previous", callback_data=f"rules:rule:{prev_index}"),
-                InlineKeyboardButton("Summary", callback_data="rules:summary:0"),
+                InlineKeyboardButton("Home", callback_data="rules:summary:0"),
                 InlineKeyboardButton("Next →", callback_data=f"rules:rule:{next_index}")
             ]
         ]
