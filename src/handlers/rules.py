@@ -6,36 +6,60 @@ from utils.data import rules
 async def rules_command(update: Update, context: CallbackContext):
     """
     Handle the /rules command.
-    Shows a summary of all rules and a set of numbered buttons to view details.
+    If no argument is provided, show the summary of rules with navigation buttons.
+    If a number is provided, show the specific rule.
     """
-    # Construct the main message with all rules summary
-    message_text = "*__Victoria Pups Key Rules__*\n\n"
-    
-    # Enumerate rules (1-based) and add them to the message
-    # e.g. "1) Be Respectful: Foster a safe and inclusive space for everyone."
-    for i, (rule, info) in enumerate(rules.items(), start=1):
-        message_text += f"{i}\\) *{rule}*: _{info['summary']}_\n"
-
-    message_text += "\nSelect a rule to learn more\\."
-
-    # Create a row of buttons for each rule number
-    # If we have 6 rules, create buttons: [1, 2, 3, 4, 5, 6]
+    # Check if the user provided a rule number as an argument
+    args = context.args  # Contains the list of arguments passed with the command
     rule_keys = list(rules.keys())
-    buttons = []
-    for i in range(len(rule_keys)):
-        buttons.append(InlineKeyboardButton(str(i+1), callback_data=f"rules:rule:{i}"))
 
-    # Wrap the buttons in a single row (assuming 6 rules)
-    keyboard = [buttons]
+    if args:  # If there are arguments, try to parse the rule number
+        try:
+            rule_number = int(args[0])  # Convert the first argument to an integer
+            if 1 <= rule_number <= len(rule_keys):  # Check if the number is within range
+                # Fetch the specific rule
+                current_rule = rule_keys[rule_number - 1]
+                current_info = rules[current_rule]
 
-    reply_markup = InlineKeyboardMarkup(keyboard)
+                # Format the message for the specific rule
+                message_text = f"*{current_rule}*\n_{current_info['description']}_"
 
-    # Send the initial summary message
-    await update.message.reply_text(
-        message_text,
-        parse_mode=ParseMode.MARKDOWN_V2,
-        reply_markup=reply_markup
-    )
+                # Send the specific rule to the user
+                await update.message.reply_text(
+                    message_text,
+                    parse_mode=ParseMode.MARKDOWN_V2
+                )
+            else:
+                # Rule number is out of range
+                await update.message.reply_text(
+                    f"Invalid rule number! Please use a number between 1 and {len(rule_keys)}."
+                )
+        except ValueError:
+            # Argument isn't a valid number
+            await update.message.reply_text("Please provide a valid rule number (e.g., `/rules 1`).")
+    else:
+        # No argument provided, show the summary as before
+        message_text = "*__Victoria Pups Key Rules__*\n\n"
+        for i, (rule, info) in enumerate(rules.items(), start=1):
+            message_text += f"{i}\\) *{rule}*: _{info['summary']}_\n"
+
+        message_text += "\nSelect a rule to learn more\\."
+
+        # Create a row of buttons for each rule number
+        buttons = [
+            InlineKeyboardButton(str(i + 1), callback_data=f"rules:rule:{i}")
+            for i in range(len(rule_keys))
+        ]
+        keyboard = [buttons]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+
+        # Send the summary message
+        await update.message.reply_text(
+            message_text,
+            parse_mode=ParseMode.MARKDOWN_V2,
+            reply_markup=reply_markup
+        )
+
 
 async def rules_callback(update: Update, context: CallbackContext):
     """
