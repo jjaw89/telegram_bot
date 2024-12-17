@@ -4,6 +4,7 @@ from config import config
 from handlers.rules import rules_command, rules_callback
 from handlers.admins import admins_command, admins_callback
 from handlers.links import links_command
+from handlers.events import get_handlers as get_event_handlers
 # You can add other handlers (like /start, /help) as they are created.
 # For now, we will just implement a simple /help and /start to verify the bot works.
 # Also implement /stars as requested.
@@ -45,6 +46,12 @@ def main():
     app.add_handler(CallbackQueryHandler(admins_callback, pattern='^admins:'))
     
     app.add_handler(CommandHandler("links", links_command))
+    app.run_polling()
+    
+    # Event handlers
+    for h in get_event_handlers():
+        app.add_handler(h)
+
     app.run_polling()
 
 if __name__ == "__main__":
