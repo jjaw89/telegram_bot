@@ -5,11 +5,8 @@ from handlers.rules import rules_command, rules_callback
 from handlers.admins import admins_command, admins_callback
 from handlers.links import links_command
 from handlers.events import get_handlers as get_event_handlers
-# You can add other handlers (like /start, /help) as they are created.
-# For now, we will just implement a simple /help and /start to verify the bot works.
-# Also implement /stars as requested.
 
-# Enable logging to help debug
+# Enable logging
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
 )
@@ -27,31 +24,42 @@ async def help_command(update, context):
         "/help - Show this help message.\n"
         "/rules - Show the group rules and navigate through them.\n"
         "/admins - Show the group admin rolls.\n"
-        "/links - Show some useful links."
+        "/links - Show some useful links.\n"
+        "/newevent - Create a new event (admin only in private chat)."
+        "/debug - Print userID and chatID in the terminal."
     )
     await update.message.reply_text(help_text)
 
+async def debug_command(update, context):
+    chat_id = update.effective_chat.id
+    user_id = update.effective_user.id
+    # Print to terminal
+    print(f"Debug Info: Chat ID: {chat_id}, User ID: {user_id}")
+    # If you don't want to send a message, you can just omit reply_text
+    # Or optionally, you can send a small acknowledgment message:
+    await update.message.reply_text("Debug info printed to terminal.")
 
 def main():
     token = config.token
     app = Application.builder().token(token).build()
 
+    # Add basic handlers
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("rules", rules_command))
     app.add_handler(CallbackQueryHandler(rules_callback, pattern='^rules:'))
-    
-    # Add the new /admins command and its callback
     app.add_handler(CommandHandler("admins", admins_command))
     app.add_handler(CallbackQueryHandler(admins_callback, pattern='^admins:'))
-    
     app.add_handler(CommandHandler("links", links_command))
-    app.run_polling()
     
-    # Event handlers
+    # Add a debug command handler (optional)
+    app.add_handler(CommandHandler("debug", debug_command))
+
+    # Add event handlers
     for h in get_event_handlers():
         app.add_handler(h)
 
+    # Start polling after all handlers are registered
     app.run_polling()
 
 if __name__ == "__main__":
