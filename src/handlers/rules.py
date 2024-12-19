@@ -1,133 +1,170 @@
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import CallbackQueryHandler, CommandHandler, ContextTypes
 from telegram.constants import ParseMode
-from telegram.ext import CallbackContext
 from utils.data import rules
+from config.config import chat_ids
 
-async def rules_command(update: Update, context: CallbackContext):
-    """
-    Handle the /rules command.
-    If no argument is provided, show the summary of rules with navigation buttons.
-    If a number is provided, show the specific rule.
-    """
-    # Check if the user provided a rule number as an argument
-    args = context.args  # Contains the list of arguments passed with the command
-    rule_keys = list(rules.keys())
+def rules_summary():
+    """Generate a summary of the rules for posting in the group."""
+    message_text = "*__Summary of Key Rules__*\n\n"
+    for i, (rule, info) in enumerate(rules.items(), start=1):
+        message_text += f"{i}\\) *{rule}*: _{info['summary']}_\n"
+    return message_text
 
-    if args:  # If there are arguments, try to parse the rule number
-        try:
-            rule_number = int(args[0])  # Convert the first argument to an integer
-            if 1 <= rule_number <= len(rule_keys):  # Check if the number is within range
-                # Fetch the specific rule
-                current_rule = rule_keys[rule_number - 1]
-                current_info = rules[current_rule]
+def rules_private_reply_markup():
+    keyboard = [
+        InlineKeyboardButton(str(i), callback_data=f"rules:rule:{i-1}")
+        for i in range(1, len(rules) + 1)
+    ]
+    return InlineKeyboardMarkup([keyboard])
 
-                # Format the message for the specific rule
-                message_text = f"*{current_rule}*\n_{current_info['description']}_"
-
-                # Send the specific rule to the user
-                await update.message.reply_text(
-                    message_text,
-                    parse_mode=ParseMode.MARKDOWN_V2
-                )
-            else:
-                # Rule number is out of range
-                await update.message.reply_text(
-                    f"Invalid rule number! Please use a number between 1 and {len(rule_keys)}."
-                )
-        except ValueError:
-            # Argument isn't a valid number
-            await update.message.reply_text("Please provide a valid rule number (e.g., `/rules 1`).")
-    else:
-        # No argument provided, show the summary as before
-        message_text = "*__Victoria Pups Key Rules__*\n\n"
-        for i, (rule, info) in enumerate(rules.items(), start=1):
-            message_text += f"{i}\\) *{rule}*: _{info['summary']}_\n"
-
+async def rules_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle the /rules command."""
+    if update.effective_chat.type == "private":
+        # Private chat: Show rules with buttons
+        message_text = rules_summary()
         message_text += "\nSelect a rule to learn more\\."
-
-        # Create a row of buttons for each rule number
-        buttons = [
-            InlineKeyboardButton(str(i + 1), callback_data=f"rules:rule:{i}")
-            for i in range(len(rule_keys))
-        ]
-        keyboard = [buttons]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
-        # Send the summary message
-        await update.message.reply_text(
-            message_text,
+        reply_markup = rules_private_reply_markup()
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=message_text,
             parse_mode=ParseMode.MARKDOWN_V2,
             reply_markup=reply_markup
         )
+    else:
+        # Group or other chat: Send plain summary
+        message_text = rules_summary()
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=message_text,
+            parse_mode=ParseMode.MARKDOWN_V2
+        )
 
-
-async def rules_callback(update: Update, context: CallbackContext):
-    """
-    Handle all callback queries related to rules navigation.
-    Callback data format:
-      - "rules:rule:<index>" to view a specific rule
-      - "rules:summary:0" to return to the summary
-    """
+async def rules_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle button clicks for rules."""
     query = update.callback_query
-    await query.answer()  # Acknowledge the callback
+    await query.answer()  # Acknowledge the callback to prevent timeout
 
-    data = query.data.split(":")  # e.g. ["rules", "rule", "0"] or ["rules", "summary", "0"]
+    data = query.data.split(":")
     action = data[1]  # "rule" or "summary"
 
-    rule_keys = list(rules.keys())
-    total_rules = len(rule_keys)
-
     if action == "summary":
-        # User wants to go back to the summary of all rules
-        message_text = "*__Victoria Pups Key Rules__*\n\n"
-        for i, (rule, info) in enumerate(rules.items(), start=1):
-            message_text += f"{i}\\) *{rule}*: _{info['summary']}_\n"
-
+        # Return to summary with buttons
+        message_text = rules_summary()
         message_text += "\nSelect a rule to learn more\\."
-
-        # Recreate the buttons 1-6 (or however many rules)
-        buttons = []
-        for i in range(total_rules):
-            buttons.append(InlineKeyboardButton(str(i+1), callback_data=f"rules:rule:{i}"))
-
-        keyboard = [buttons]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
+        reply_markup = rules_private_reply_markup()
         await query.edit_message_text(
-            message_text,
+            text=message_text,
             parse_mode=ParseMode.MARKDOWN_V2,
             reply_markup=reply_markup
         )
-
     elif action == "rule":
-        # The user is viewing a specific rule
+        # Show a specific rule
+        rule_keys = list(rules.keys())
+        total_rules = len(rule_keys)
+
         current_index = int(data[2])
         current_rule = rule_keys[current_index]
         current_info = rules[current_rule]
 
-        # Format the full rule message
-        # For example:
-        # *Be Respectful*
-        # _Full description here..._
         message_text = f"*{current_rule}*\n_{current_info['description']}_"
 
-        # Navigation buttons: Previous, Summary, Next
         prev_index = (current_index - 1) % total_rules
         next_index = (current_index + 1) % total_rules
 
         keyboard = [
             [
                 InlineKeyboardButton("← Previous", callback_data=f"rules:rule:{prev_index}"),
-                InlineKeyboardButton("Home", callback_data="rules:summary:0"),
+                InlineKeyboardButton("Home", callback_data="rules:summary"),
                 InlineKeyboardButton("Next →", callback_data=f"rules:rule:{next_index}")
             ]
         ]
-
         reply_markup = InlineKeyboardMarkup(keyboard)
 
-        # Edit the same message to show this rule
         await query.edit_message_text(
-            message_text,
+            text=message_text,
             parse_mode=ParseMode.MARKDOWN_V2,
             reply_markup=reply_markup
         )
+
+
+def rulesadmin_reply_markup():
+    keyboard = [
+        InlineKeyboardButton(str(i), callback_data=f"rulesadmin:{i-1}")
+        for i in range(1, len(rules) + 1)
+    ]
+    return InlineKeyboardMarkup([keyboard])
+
+
+async def rulesadmin_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle the /rulesadmin command."""
+    # Ensure the command is used in a private chat
+    if update.effective_chat.type != "private":
+        return
+    
+    # Dynamically fetch the group administrators
+    group_chat = await context.bot.get_chat(chat_ids["group"])
+    group_admins = [admin.user.id for admin in await group_chat.get_administrators()]
+    group_name = group_chat.title
+    
+    # Check if the user is an admin in the group
+    user_id = update.effective_user.id
+    if user_id not in group_admins:
+        await update.message.reply_text(f"You are not an admin of {group_name}.")
+        return
+    
+    # Construct the rules summary with an option to post
+    message_text = f"\nSelect a rule to post to {group_name}\\.\n\n"
+    message_text += rules_summary()
+
+    reply_markup = rulesadmin_reply_markup()
+    
+    # Send the message with buttons
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=message_text,
+        parse_mode=ParseMode.MARKDOWN_V2,
+        reply_markup=reply_markup
+    )
+        
+async def rulesadmin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handle button clicks for rulesadmin."""
+    query = update.callback_query
+    await query.answer()  # Acknowledge the callback to prevent timeout
+
+    data = query.data.split(":")
+    
+    # Dynamically fetch the group administrators
+    group_chat = await context.bot.get_chat(chat_ids["group"])
+    group_name = group_chat.title
+    
+    # Show a specific rule
+    rule_keys = list(rules.keys())
+
+    post_index = int(data[1])
+    post_rule = rule_keys[post_index]
+    post_info = rules[post_rule]
+    
+    message_text = f"*{post_rule}*\n_{post_info['description']}_"
+    
+    await context.bot.send_message(
+        chat_id=chat_ids["group"],
+        text=message_text,
+        parse_mode=ParseMode.MARKDOWN_V2
+    )
+    
+    # Acknowledge the post in the private chat
+    await query.edit_message_text(
+        text=f"Rule {post_index + 1} \\(*{post_rule}*\\) has been posted to {group_name}\\.",
+        parse_mode=ParseMode.MARKDOWN_V2
+    )
+
+    
+# Handlers for integration
+def get_rules_handlers():
+    return [
+        CommandHandler("rules", rules_command),
+        CallbackQueryHandler(rules_callback, pattern="^rules:"),
+        CommandHandler("rulesadmin", rulesadmin_command),
+        CallbackQueryHandler(rulesadmin_callback, pattern="^rulesadmin:"),
+    ]

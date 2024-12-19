@@ -1,10 +1,11 @@
 import logging
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler
 from config import config
-from handlers.rules import rules_command, rules_callback
+from handlers.rules import get_rules_handlers
 from handlers.admins import admins_command, admins_callback
 from handlers.links import links_command
 from handlers.events import get_handlers as get_event_handlers
+from event_admin.eventadmin import get_eventadmin_handlers
 
 # Enable logging
 logging.basicConfig(
@@ -46,8 +47,8 @@ def main():
     # Add basic handlers
     app.add_handler(CommandHandler("start", start_command))
     app.add_handler(CommandHandler("help", help_command))
-    app.add_handler(CommandHandler("rules", rules_command))
-    app.add_handler(CallbackQueryHandler(rules_callback, pattern='^rules:'))
+    # app.add_handler(CommandHandler("rules", rules_command))
+    # app.add_handler(CallbackQueryHandler(rules_callback, pattern='^rules:'))
     app.add_handler(CommandHandler("admins", admins_command))
     app.add_handler(CallbackQueryHandler(admins_callback, pattern='^admins:'))
     app.add_handler(CommandHandler("links", links_command))
@@ -55,8 +56,12 @@ def main():
     # Add a debug command handler (optional)
     app.add_handler(CommandHandler("debug", debug_command))
 
-    # Add event handlers
-    for h in get_event_handlers():
+    # Add rules handlers:
+    for h in get_rules_handlers():
+        app.add_handler(h)
+
+    # Add event_admin handlers:
+    for h in get_eventadmin_handlers():
         app.add_handler(h)
 
     # Start polling after all handlers are registered
