@@ -159,6 +159,50 @@ async def rulesadmin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE
         parse_mode=ParseMode.MARKDOWN_V2
     )
 
+async def postrule_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Post a specific rule to the current chat."""
+    # Ensure the user is an admin in the current chat
+    # Fetch chat administrators
+    chat_admins = await update.effective_chat.get_administrators()
+    admin_ids = [admin.user.id for admin in chat_admins]
+    
+    # Debug: Log admin IDs
+    print(f"Admin IDs: {admin_ids}")
+    print(f"Your ID: {update.effective_user.id}")
+    
+    # Check if the user is an admin
+    if update.effective_user.id not in admin_ids:
+        await update.message.reply_text("You are not an admin of this chat.")
+        return
+
+    
+    # Parse arguments to get the rule index
+    if not context.args or not context.args[0].isdigit():
+        await update.message.reply_text("Please provide a valid rule number.")
+        return
+    
+    rule_index = int(context.args[0])
+    rule_keys = list(rules.keys())
+
+    # Check if the rule index is valid
+    if rule_index < 0 or rule_index >= len(rule_keys):
+        await update.message.reply_text("Invalid rule number. Please provide a valid number.")
+        return
+
+    # Fetch the rule details
+    post_rule = rule_keys[rule_index]
+    post_info = rules[post_rule]
+
+    # Construct and send the message
+    message_text = f"*{post_rule}*\n_{post_info['description']}_"
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=message_text,
+        parse_mode=ParseMode.MARKDOWN_V2
+    )
+
+        
+        
     
 # Handlers for integration
 def get_rules_handlers():
@@ -167,4 +211,5 @@ def get_rules_handlers():
         CallbackQueryHandler(rules_callback, pattern="^rules:"),
         CommandHandler("rulesadmin", rulesadmin_command),
         CallbackQueryHandler(rulesadmin_callback, pattern="^rulesadmin:"),
+        CommandHandler("postrule", postrule_command),
     ]

@@ -23,10 +23,11 @@ async def help_command(update, context):
         "Available commands:\n"
         "/start - Start interacting with the bot.\n"
         "/help - Show this help message.\n"
-        "/rules - Show the group rules and navigate through them.\n"
+        "/rules - Post a summary of the rules. If posted in your private chat with the bot you can explore the full rules.\n"
+        "/rulesadmin - From your own private chat with the bot you may post a full rule to the group chat.\n"
+        "/postrule n - Posts full rule n (1 <= n <= 6).\n"
         "/admins - Show the group admin rolls.\n"
         "/links - Show some useful links.\n"
-        "/newevent - Create a new event (admin only in private chat)."
         "/debug - Print userID and chatID in the terminal."
     )
     await update.message.reply_text(help_text)

@@ -23,7 +23,7 @@ async def eventadmin_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
     
     keyboard = [
         [InlineKeyboardButton("Announce an event", callback_data="eventadmin:1")],
-        [InlineKeyboardButton("Poll the chat", callback_data="eventadmin:2")],
+        [InlineKeyboardButton("Poll the group", callback_data="eventadmin:2")],
         [InlineKeyboardButton("Edit an event", callback_data="eventadmin:3")],
         [InlineKeyboardButton("Message attendees", callback_data="eventadmin:4")],
     ]
@@ -34,7 +34,9 @@ async def eventadmin_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
     
 async def eventadmin_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
+    await query.answer()  # Acknowledge the callback to prevent timeout
     
+    data = query.data.split(":")
     for i in range(1,5):
         if query.split(":")[1] == f"{i}":
             await update.message.reply_text(f"You have selected option {i}")
