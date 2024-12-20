@@ -1,0 +1,16 @@
+{
+    "events": [
+        {
+            "id": 1,
+            "name": "Bingo",
+            "start": "15:00 21/12/24",
+            "end": null,
+            "capacity": 10,
+            "attendees": [],
+            "waitlist": [],
+            "announcement_text": "Lets have bingo Friday night",
+            "announcement_show_spots": true,
+            "announcement_show_attending": false
+        }
+    ]
+}
