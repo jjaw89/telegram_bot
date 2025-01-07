@@ -185,13 +185,13 @@ async def postrule_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     rule_keys = list(rules.keys())
 
     # Check if the rule index is valid
-    if rule_index < 0 or rule_index >= len(rule_keys):
+    if rule_index < 1 or rule_index >= len(rule_keys):
         await update.message.reply_text("Invalid rule number. Please provide a valid number.")
         return
 
     # Fetch the rule details
-    post_rule = rule_keys[rule_index]
-    post_info = rules[post_rule]
+    post_rule = rule_keys[rule_index-1]
+    post_info = rules[post_rule-1]
 
     # Construct and send the message
     message_text = f"*{post_rule}*\n_{post_info['description']}_"
@@ -200,9 +200,6 @@ async def postrule_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text=message_text,
         parse_mode=ParseMode.MARKDOWN_V2
     )
-
-        
-        
     
 # Handlers for integration
 def get_rules_handlers():
