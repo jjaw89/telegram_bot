@@ -34,7 +34,7 @@ The data file (`src/data/data.py`) should include details about roles, rules, an
 ```python
 # Roles of the admins
 roles = {
-    "ROLE_NAME_1": {
+    "role_name_1": {
         "summary": "Short summary of the role.",
         "description": "Detailed description of the role.",
         "admins": [
@@ -42,7 +42,7 @@ roles = {
             {"name": "Admin2", "username": "username2"}
         ]
     },
-    "ROLE_NAME_2": {
+    "role_name_2": {
         "summary": "Short summary of the role.",
         "description": "Detailed description of the role.",
         "admins": [
